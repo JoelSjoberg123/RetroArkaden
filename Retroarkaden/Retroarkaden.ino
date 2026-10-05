@@ -1,3 +1,4 @@
+#include <digitalWriteFast.h>
 /*
 img will be outputed to the monitor.
 Will use shift register, get a pattern per row.
@@ -28,30 +29,26 @@ const uint8_t decoderPins[amountOfDecoderPins] = {5,6,7,8,9};
 void setup()
 {
   Serial.begin(9600);
-  pinMode(doShift, OUTPUT);
-  pinMode(serialShiftOut, OUTPUT);
-  digitalWrite(doShift, LOW);
+  pinModeFast(doShift, OUTPUT);
+  pinModeFast(serialShiftOut, OUTPUT);
+  digitalWriteFast(doShift, LOW);
   for(int i = 0; i < rowLen * colLen; i++)
   {
     img[i] = i % 2;
   }
 
-
   pinMode(activateDecoder, OUTPUT);
   for(int i = 0; i < amountOfDecoderPins; i++)
   {
-    pinMode(decoderPins[i], OUTPUT);
+    pinModeFast(decoderPins[i], OUTPUT);
   }
-  int time01 = micros();
-  PrintScreen();
-  int time02 = micros();
-  Serial.print(time02 - time01);
+  
 }
 
 void loop()
 {
   
-
+  
 }
 
 void PrintScreen()
@@ -67,12 +64,12 @@ void PrintRow(uint8_t row)
   ShiftInOneRow(row);
   for(int i = 0; i < amountOfDecoderPins; i++)
   {
-    digitalWrite(decoderPins[i], bitRead(row, i));
+    digitalWriteFast(decoderPins[i], bitRead(row, i));
   }
 
-  digitalWrite(activateDecoder, HIGH);
+  digitalWriteFast(activateDecoder, HIGH);
   //Wait
-  digitalWrite(activateDecoder, LOW);
+  digitalWriteFast(activateDecoder, LOW);
 }
 
 void ShiftInOneRow(uint8_t row)
@@ -83,9 +80,9 @@ void ShiftInOneRow(uint8_t row)
 
   for(int i = 0; i < colLen; i++)
   {
-    digitalWrite(serialShiftOut, img[startBit + i]);
-    digitalWrite(doShift, HIGH);
+    digitalWriteFast(serialShiftOut, img[startBit + i]);
+    digitalWriteFast(doShift, HIGH);
     //Wait
-    digitalWrite(doShift, LOW);
+    digitalWriteFast(doShift, LOW);
   }
 }
