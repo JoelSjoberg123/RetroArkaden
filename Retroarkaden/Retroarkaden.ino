@@ -25,6 +25,33 @@ const uint8_t amountOfDecoderPins = 5;
 const uint8_t decoderPins[amountOfDecoderPins] = {5,6,7,8,9};
 #define activateDecoder 10
 
+#define upKey A0
+#define leftKey A1
+#define rightKey A2
+#define downKey A3
+//Timing of the game
+uint32_t timeLastUpdateInMiliseconds = 0;
+uint16_t timeUpdate = 1000;
+//The tetriminos
+
+/*
+Only needs two layers, upper and lower are always 0000. Example:
+uint16_t iTerimino  = 0b0000-0000-1111-0000;
+The second last bit will always be the axis of rotation.
+*/
+const uint8_t iTerimino  = 0b0000-1111;
+const uint8_t oTetrimino = 0b0110-0110;
+const uint8_t jTetrimino = 0b0100-0111;
+const uint8_t LTetrimino = 0b0001-0111;
+const uint8_t sTetrimino = 0b0110-0011;
+const uint8_t zTetrimino = 0b0011-0110;
+const uint8_t tTetrimino = 0b0010-0111;
+
+//Falling tetrimino
+uint8_t positionX = 0;//Bottom left is origin.
+uint8_t positionY = 0;//Position is of the axis of rotation.
+uint8_t rotation  = 0;
+
 
 void setup()
 {
@@ -42,13 +69,22 @@ void setup()
   {
     pinModeFast(decoderPins[i], OUTPUT);
   }
-  
+  pinModeFast(upKey, INPUT_PULLUP);
+  pinModeFast(leftKey, INPUT_PULLUP);
+  pinModeFast(rightKey, INPUT_PULLUP);
+  pinModeFast(downKey, INPUT_PULLUP);
 }
 
 void loop()
 {
-  
-  
+  uint32_t timeNow = millis();
+  if(timeNow - timeLastUpdateInMiliseconds >= timeUpdate)
+  {
+    //FallBlocks();
+    timeLastUpdateInMiliseconds = timeNow;
+  }
+
+
 }
 
 void PrintScreen()
