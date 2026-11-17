@@ -104,9 +104,17 @@ void loop()
 
 void HandleInputs()
 {
-  //Do rotation
+  //It's input_pullup, so in the case of 1(True), the gate is open.
+  bool rotate = !digitalReadFast(upKey);
+  if(rotate)
+  {
+    if(currentTetrimino == oTetrimino)
+    {
+      //Nothing
+    }
+  }
 
-  //It's input_pullup, so 1(True) is off.
+  
   bool left  = !digitalReadFast(leftKey);
   bool right = !digitalReadFast(rightKey);
   if(!(left && right))
@@ -122,7 +130,7 @@ void HandleInputs()
     }
     positionX += x;
     UpdateImgOnlyFalling();
-    if(true/*CheckIfWorks()*/)
+    if(!FallingBlockAllowed())
     {
       positionX -= x;
     }
@@ -131,16 +139,53 @@ void HandleInputs()
   if(down)
   {
     positionY -= 1;
-    //Add checks if stopped.
+    bool succedd = UpdateImgOnlyFalling();
+    if(!succedd)
+    {
+      positionY += 1;
+      UpdateImgOnlyFalling();
+      SetFallingTetriminoToStatic();
+    }
   }
 }
 
 void FallBlocks()
 {
-  
+  positionY -= 1;
+  bool succedd = UpdateImgOnlyFalling();
+    if(!succedd)
+  {
+    positionY += 1;
+    UpdateImgOnlyFalling();
+    SetFallingTetriminoToStatic();
+  }
 }
 
-void UpdateImgOnlyFalling()
+void SetFallingTetriminoToStatic()
+{
+  for(int i = 0; i < colLen * rowLen; i++)
+  {
+    img[i] |= imgOnlyFalling[i];
+  }
+  rotation = 0;
+  positionX = 5;
+  positionY = 20;
+}
+
+bool FallingBlockAllowed()
+{
+  for(int i = 0; i < rowLen * colLen; i++)
+  {
+    if((i % rowLen > 9 && imgOnlyFalling[i] == 1) || (imgOnlyFalling[i] == 1 && img[i] == 1))
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
+//True succedes, false fails. AKA:
+bool UpdateImgOnlyFalling()
 {
   for(int i = 0; i < rowLen * colLen; i++)
   {
@@ -172,9 +217,14 @@ void UpdateImgOnlyFalling()
       x = positionX - (i / 4) + 1; //since positionX is 1 less than first bit.
       y = positionY - (i % 4) + 2; //since positionY is 2 less than first bit.
     }
+    if(positionY < 0)
+    {
+      return false;
+    }
 
     imgOnlyFalling[x + y * rowLen] = 1;
   }
+  return true;
 }
 
 uint8_t GenerateNextTetrimino()
