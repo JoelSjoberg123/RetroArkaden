@@ -33,6 +33,8 @@ const uint8_t decoderPins[amountOfDecoderPins] = {5,6,7,8,9};
 //Timing of the game
 uint32_t timeLastUpdateInMiliseconds = 0;
 uint16_t timeUpdate = 1000;
+uint32_t score = 0;
+uint8_t baseScoreRow = 10;
 //The tetriminos
 
 /*
@@ -90,8 +92,11 @@ void loop()
   {
     if(currentTetrimino == 0)
     {
-      currentTetrimino = nextTetrimino;
-      nextTetrimino = GenerateNextTetrimino();
+      if(!CheckIfFullRow())
+      {
+        currentTetrimino = nextTetrimino;
+        nextTetrimino = GenerateNextTetrimino();
+      }
     }else
     {
       FallBlocks();
@@ -111,6 +116,12 @@ void HandleInputs()
     if(currentTetrimino == oTetrimino)
     {
       //Nothing
+    }else if(currentTetrimino == iTetrimino || currentTetrimino == sTetrimino || currentTetrimino == zTetrimino)
+    {
+      rotation = (rotation + 1) % 2;
+    }else
+    {//jTetrimino LTetrimino tTetrimino
+      rotation = (rotation + 1) % 4;
     }
   }
 
@@ -130,7 +141,7 @@ void HandleInputs()
     }
     positionX += x;
     UpdateImgOnlyFalling();
-    if(!FallingBlockAllowed())
+    if(!FallingBlockNotClippingStaticTetriminoesAndNotTooFarRight())
     {
       positionX -= x;
     }
@@ -138,14 +149,7 @@ void HandleInputs()
   bool down = !digitalReadFast(downKey);
   if(down)
   {
-    positionY -= 1;
-    bool succedd = UpdateImgOnlyFalling();
-    if(!succedd)
-    {
-      positionY += 1;
-      UpdateImgOnlyFalling();
-      SetFallingTetriminoToStatic();
-    }
+    FallBlocks();
   }
 }
 
@@ -153,7 +157,7 @@ void FallBlocks()
 {
   positionY -= 1;
   bool succedd = UpdateImgOnlyFalling();
-    if(!succedd)
+  if(!succedd || !FallingBlockNotClippingStaticTetriminoesAndNotTooFarRight())//Gone through ground and gone into ground tetriminos respectively.
   {
     positionY += 1;
     UpdateImgOnlyFalling();
@@ -172,7 +176,32 @@ void SetFallingTetriminoToStatic()
   positionY = 20;
 }
 
-bool FallingBlockAllowed()
+bool CheckIfFullRow()
+{
+  uint8_t numRowsCleared = 0;
+  for(int row = colLen - 1; row >= 0; row--)
+  {
+    if(img[row * rowLenIn8] == 0b1111-1111 && img[row * rowLenIn8 + 1] & 0b1100-0000 == 0b1100-0000)
+    {
+      numRowsCleared++;
+      for(int i = row - 1; i >= 0; i--)
+      {
+        img[i * rowLenIn8    ] = img[i * rowLenIn8 - 2];
+        img[i * rowLenIn8 + 1] = (img[i * rowLenIn8 - 1] & 0b1100-0000) | (img[i * rowLenIn8 + 1] & 0b0011-1111);
+      }
+      img[0] = 0;
+      img[1] &= 0b0011-1111;
+    }
+  }
+  if(numRowsCleared > 0)
+  {
+    score += baseScoreRow * (2 * numRowsCleared - 1);
+    return true;
+  }
+  return false;
+}
+
+bool FallingBlockNotClippingStaticTetriminoesAndNotTooFarRight()
 {
   for(int i = 0; i < rowLenIn8 * 8 * colLen; i++)
   {
