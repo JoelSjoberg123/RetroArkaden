@@ -13,10 +13,10 @@ Decoder is standard high, so it will have to be on the negative side of the dot 
 #define serialShiftOut 4
 
 
-const uint8_t rowLen = 16;
+const uint8_t rowLenIn8 = 2;//8 leds/row/matrix
 const uint8_t colLen = 24;
-bool img[rowLen * colLen] = {};
-bool imgOnlyFalling[rowLen * colLen] = {};
+uint8_t img[rowLenIn8 * colLen] = {};
+uint8_t imgOnlyFalling[rowLenIn8 * colLen] = {};
 /*
 Could make the array an array of uint8_t, where one uint8_t is one row of one dot matrix.
 Probably better than one uint16_t, since the processor is an 8 bit processor.
@@ -62,9 +62,9 @@ void setup()
   pinModeFast(doShift, OUTPUT);
   pinModeFast(serialShiftOut, OUTPUT);
   digitalWriteFast(doShift, LOW);
-  for(int i = 0; i < rowLen * colLen; i++)
+  for(int i = 0; i < rowLenIn8 * colLen; i++)
   {
-    img[i] = i % 2;
+    img[i] = 0;
   }
 
   pinMode(activateDecoder, OUTPUT);
@@ -163,7 +163,7 @@ void FallBlocks()
 
 void SetFallingTetriminoToStatic()
 {
-  for(int i = 0; i < colLen * rowLen; i++)
+  for(int i = 0; i < colLen * rowLenIn8; i++)
   {
     img[i] |= imgOnlyFalling[i];
   }
@@ -174,9 +174,9 @@ void SetFallingTetriminoToStatic()
 
 bool FallingBlockAllowed()
 {
-  for(int i = 0; i < rowLen * colLen; i++)
+  for(int i = 0; i < rowLenIn8 * 8 * colLen; i++)
   {
-    if((i % rowLen > 9 && imgOnlyFalling[i] == 1) || (imgOnlyFalling[i] == 1 && img[i] == 1))
+    if((i % (rowLenIn8 * 8) > 9 && (imgOnlyFalling[i / 8] & (0b1000-0000 >> (i % 8))) == 1) || (imgOnlyFalling[i] & img[i] != 0))
     {
       return false;
     }
@@ -187,7 +187,7 @@ bool FallingBlockAllowed()
 //True succedes, false fails. AKA:
 bool UpdateImgOnlyFalling()
 {
-  for(int i = 0; i < rowLen * colLen; i++)
+  for(int i = 0; i < rowLenIn8 * colLen; i++)
   {
     imgOnlyFalling[i] = 0;
   }
@@ -222,7 +222,7 @@ bool UpdateImgOnlyFalling()
       return false;
     }
 
-    imgOnlyFalling[x + y * rowLen] = 1;
+    imgOnlyFalling[y * rowLenIn8] |= 0b1000-0000 >> x;
   }
   return true;
 }
@@ -263,7 +263,7 @@ void PrintScreenWithFallingTetrimino()
 
 void PrintScreen()
 {
-  for(int row = 0; row < rowLen; row++)
+  for(int row = 0; row < colLen; row++)
   {
     PrintRow(row);
   }
@@ -286,11 +286,11 @@ void ShiftInOneRow(uint8_t row)
 {
   //E.g: row = 0, start bit 0. row = 1, start bit 16(16 on first row, from 0 to 15).
 
-  int startBit = row * rowLen;
+  int startByte = row * rowLenIn8;
 
-  for(int i = 0; i < colLen; i++)
+  for(int i = 0; i < rowLenIn8 * 8; i++)
   {
-    digitalWriteFast(serialShiftOut, img[startBit + i]);
+    digitalWriteFast(serialShiftOut, bitRead(img[startByte], i));
     digitalWriteFast(doShift, HIGH);
     //Wait
     digitalWriteFast(doShift, LOW);
