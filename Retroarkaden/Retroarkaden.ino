@@ -82,7 +82,7 @@ void SetupNewRound()
   //Read unconnected analog pin to get randomseed.
   pinModeFast(A5, INPUT);
   randomSeed(analogRead(A5));
-  nextTetrimino = GenerateNextTetrimino();
+  UpdateNextTetrimino();
   positionX = 5;
   positionY = 19;
 
@@ -108,8 +108,7 @@ void loop()
           SetupNewRound();
           return;
         }
-        currentTetrimino = nextTetrimino;
-        nextTetrimino = GenerateNextTetrimino();
+        UpdateNextTetrimino();
       }
     }else
     {
@@ -221,6 +220,14 @@ bool CheckIfFullRow()
   }
   return false;
 }
+void UpdateDisplayedScore()
+{
+  for(int i = 0; i < rowLenIn8 * 2; i++)
+  {
+    img[i] = 0;
+    img[i] |= 0b1111-1111 & score >> (8 * 4 - i);
+  }
+}
 
 bool FallingBlockNotClippingStaticTetriminoesAndNotTooFarRight()
 {
@@ -234,7 +241,7 @@ bool FallingBlockNotClippingStaticTetriminoesAndNotTooFarRight()
   return true;
 }
 
-//True succedes, false fails. AKA:
+//True succedes, false fails. AKA: Falling block through ground.
 bool UpdateImgOnlyFalling()
 {
   for(int i = 0; i < rowLenIn8 * colLen; i++)
@@ -279,6 +286,26 @@ bool UpdateImgOnlyFalling()
     imgOnlyFalling[(23 - y) * rowLenIn8 + (x / 8)] |= 0b1000-0000 >> (x % 8);
   }
   return true;
+}
+
+void UpdateNextTetrimino()
+{
+  currentTetrimino = nextTetrimino;
+  nextTetrimino = GenerateNextTetrimino();
+  for(int i = 0; i < 8; i++)
+  {
+    bool filled = nextTetrimino & (0b1000-0000 >> i);
+    int x = 13 + (i % 4) - 2; //since x=14 is 2 more than first bit.
+    int y = 1 - (i / 4) + 1; //since y=0 is 1 less than first bit.
+    if(!filled)
+    {
+      img[(23 - y) * rowLenIn8 + (x / 8)] &= 0b0111-1111 >> (x % 8);
+    }else
+    {
+      img[(23 - y) * rowLenIn8 + (x / 8)] |= 0b1000-0000 >> (x % 8);
+    }
+     
+  }
 }
 
 uint8_t GenerateNextTetrimino()

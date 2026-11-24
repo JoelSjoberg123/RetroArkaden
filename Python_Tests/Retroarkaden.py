@@ -56,7 +56,7 @@ def UpdateImgOnlyFalling():
   return True
 def PrintScreenWithFallingTetrimino():
   for i in range(colLen):
-    print(f"{colLen - i}\t", sep = "", end = "")
+    print(f"{colLen - i - 1}\t", sep = "", end = "")
     first = str(bin(imgOnlyFalling[i * rowLenIn8])[2:])
     for j in range(8 - len(first)):
       first = "0" + first
