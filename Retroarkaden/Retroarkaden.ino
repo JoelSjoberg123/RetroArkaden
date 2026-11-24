@@ -35,6 +35,7 @@ uint32_t timeLastUpdateInMiliseconds = 0;
 uint16_t timeUpdate = 1000;
 uint32_t score = 0;
 uint8_t baseScoreRow = 10;
+uint8_t baseScoreFallingToStatic = 1;
 //The tetriminos
 
 /*
@@ -57,17 +58,12 @@ uint8_t positionX = 0; //Bottom left is origin. Due to where the axis is of the 
 uint8_t positionY = 0; //Position is of the axis of rotation.
 uint8_t rotation  = 0; //Rotation is around the axis of rotation, going counter-clockwise.
 
-
 void setup()
 {
   Serial.begin(9600);
   pinModeFast(doShift, OUTPUT);
   pinModeFast(serialShiftOut, OUTPUT);
   digitalWriteFast(doShift, LOW);
-  for(int i = 0; i < rowLenIn8 * colLen; i++)
-  {
-    img[i] = 0;
-  }
 
   pinMode(activateDecoder, OUTPUT);
   for(int i = 0; i < amountOfDecoderPins; i++)
@@ -79,10 +75,23 @@ void setup()
   pinModeFast(rightKey, INPUT_PULLUP);
   pinModeFast(downKey, INPUT_PULLUP);
 
+  SetupNewRound();
+}
+void SetupNewRound()
+{
   //Read unconnected analog pin to get randomseed.
   pinModeFast(A5, INPUT);
   randomSeed(analogRead(A5));
   nextTetrimino = GenerateNextTetrimino();
+  positionX = 5;
+  positionY = 19;
+
+  score = 0;
+
+  for(int i = 0; i < rowLenIn8 * colLen; i++)
+  {
+    img[i] = 0;
+  }
 }
 
 void loop()
@@ -94,6 +103,11 @@ void loop()
     {
       if(!CheckIfFullRow())
       {
+        if(LostGame())
+        {
+          SetupNewRound();
+          return;
+        }
         currentTetrimino = nextTetrimino;
         nextTetrimino = GenerateNextTetrimino();
       }
@@ -105,6 +119,12 @@ void loop()
   }
   HandleInputs();
   PrintScreenWithFallingTetrimino();
+}
+
+bool LostGame()
+{
+  //If any block is up on the spawning row, it's over.
+  return ((img[rowLenIn8 * 4] & 0b1111-1111) | (img[rowLenIn8 * 4 + 1] & 0b1100-0000)) != 0;
 }
 
 void HandleInputs()
@@ -173,7 +193,8 @@ void SetFallingTetriminoToStatic()
   }
   rotation = 0;
   positionX = 5;
-  positionY = 20;
+  positionY = 19;
+  score += baseScoreFallingToStatic;
 }
 
 bool CheckIfFullRow()
@@ -250,8 +271,12 @@ bool UpdateImgOnlyFalling()
     {
       return false;
     }
-
-    imgOnlyFalling[y * rowLenIn8] |= 0b1000-0000 >> x;
+    /*
+    23 - y since array is top down, while coordinates are bottom up.
+    x / 8 since if x is 9 or 10, you need the next array.
+    x % 8 since if x is 9 or 10, you start on the next array.
+    */
+    imgOnlyFalling[(23 - y) * rowLenIn8 + (x / 8)] |= 0b1000-0000 >> (x % 8);
   }
   return true;
 }
